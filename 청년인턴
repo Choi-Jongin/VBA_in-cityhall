@@ -1,0 +1,276 @@
+Public Function GetClipboard$()
+    On Error GoTo nErr
+    Dim Clipboard As Object
+'    Microsoft Forms 2.0 Object Library
+    Set Clipboard = CreateObject("new:{1C3B4210-F441-11CE-B9EA-00AA006B1A69}")
+    Clipboard.GetFromClipboard
+    GetClipboard = Clipboard.GetText
+nErr:
+End Function
+
+Function CrTrim(ByVal 문자열 As String) '개행제거
+문자열 = Replace(문자열, Chr(10), "")
+문자열 = Replace(문자열, vbCr, "")
+CrTrim = 문자열
+End Function
+
+Function LRCrTrim(ByVal 문자열 As String) '문자열 앞 뒤 개행 제거
+
+'첫 문자가 개행문자가 아닐때 까지
+Do Until Left(문자열, 1) <> vbCr And Left(문자열, 1) <> Chr(10)
+    문자열 = Right(문자열, Len(문자열) - 1)
+Loop
+
+'마지막 문자가 개행문자가 아닐때 까지
+Do Until Right(문자열, 1) <> vbCr And Right(문자열, 1) <> Chr(10)
+    문자열 = Left(문자열, Len(문자열) - 1)
+Loop
+
+LRCrTrim = 문자열
+End Function
+
+'공백과 특수문자(. -) 제거
+Function PowerTrim(ByVal 문자열 As String)
+
+문자열 = Replace(문자열, ".", "")
+문자열 = Replace(문자열, "-", "")
+문자열 = Replace(문자열, " ", "")
+문자열 = Replace(문자열, "  ", "")
+
+PowerTrim = 문자열
+
+End Function
+'start왼쪽에 있는 문자 제거
+Function LeftDelete(ByRef 문자열 As String, ByVal start As Integer)
+    LeftDelete = Mid(문자열, start, Len(문자열) - start + 1)
+End Function
+'맨 왼쪽부터 찾는 문자열까지 제거
+Function LeftDeleteInStr(ByRef 문자열 As String, ByVal find As String)
+    If InStr(1, 문자열, find, vbTextCompare) = 0 Then
+        LeftDeleteInStr = 문자열
+        Exit Function
+    End If
+    LeftDeleteInStr = Mid(문자열, InStr(1, 문자열, find) + Len(find), Len(문자열) - (InStr(1, 문자열, find) + Len(find)) + 1)
+End Function
+'맨 왼쪽부터 찾는 문자열 앞 까지 반환
+Function strtok(ByVal 문자열 As String, ByVal laststr As String)
+    If InStr(1, 문자열, laststr, vbTextCompare) = 1 Then
+        Exit Function
+    End If
+    If InStr(1, 문자열, laststr, vbTextCompare) = 0 Then
+        strtok = 문자열
+        Exit Function
+    End If
+    strtok = Mid(문자열, 1, InStr(1, 문자열, laststr, vbTextCompare) - 1)
+End Function
+
+Sub 클립보드등록()
+
+errmsg = "시작"
+
+'클립보드에 있는 내용을 하나에 문자열의 저장
+Dim str As String
+Dim strbackup As String
+str = GetClipboard()
+strbackup = GetClipboard()
+'내용이 너무 짧으면 프로시저 중단
+If Len(str) < 200 Then
+    MsgBox "표가 제대로 복사되지 않은거 같습니다." & vbCr & "복사된 내용 : " & str, , "내용이 너무 적음"
+    Exit Sub
+End If
+
+str = CrTrim(str)       '개행제거
+
+'실행도중 에러가 발생하면 아무것도 하지 않고 최 하단으로 이동(경고 후 종료)
+On Error GoTo nErr
+
+'최종적으로 입력될 변수들 미리 선언(단 학력은 임시변수 개념임)
+Dim 성명, 생일, 주소, 번호, 학력, 권역, 자격증 As String, 특이사항 As String
+입력행 = Worksheets("2020-신청명단").Cells(5, 6).End(xlDown).Row + 1
+
+str = LeftDeleteInStr(str, "신청자격")      '신청자격까지 문자열 삭제
+
+If Left(str, 5) = "□일반자격" Then
+    MsgBox "우선자격"
+End If
+
+
+'----------------------------------------성명----------------------------------------'
+errmsg = "성명"
+str = LeftDeleteInStr(str, "성   명")       '성명까지 문자열 삭제"
+성명 = strtok(str, "생년월일")              '생년월일 앞 까지가 이름
+
+'----------------------------------------생일----------------------------------------'
+errmsg = "생일"
+str = LeftDeleteInStr(str, "생년월일")          '생년월일까지 문자열 삭제"
+Dim 임시생일 As String
+임시생일 = Trim(strtok(str, "성별"))            '성별 앞 까지가 생년월일
+
+'4자리 년도 일 경우 앞에 2글자 제외
+If Left(임시생일, 2) = "19" Or Left(임시생일, 2) = "20" Then
+    임시생일 = Mid(임시생일, 3, Len(임시생일))
+End If
+
+'만약 90.1.1 -> 9011 식으로 6자리형식이 아니면
+If Len(임시생일) < 6 Then
+    
+    If Mid(임시생일, 3, 1) > 1 Then
+    
+    End If
+
+End If
+
+년 = InStr(1, 임시생일, "년", vbTextCompare)
+월 = InStr(1, 임시생일, "월", vbTextCompare)
+일 = InStr(1, 임시생일, "일", vbTextCompare)
+
+'년월일 형식일 경우 예외처리
+If 년 * 월 * 일 <> 0 Then
+
+    월0 = ""            ' 9월->09월
+    일0 = ""            ' 9일->09일
+    If 월 - 년 < 3 Then
+        월0 = "0"
+    End If
+    If 일 - 월 < 3 Then
+        일0 = "0"
+    End If
+    생일 = Left(임시생일, 2) & 월0 & Mid(임시생일, 년 + 1, 월 - 년 - 1) & 일0 & Mid(임시생일, 월 + 1, 일 - 월 - 1)
+Else
+'.으로 구분되는 경우
+    If Len(Format(PowerTrim(임시생일))) < 6 Then    '90.1.1 형식일 경우
+        몇년 = strtok(임시생일, ".")
+        임시생일 = LeftDeleteInStr(임시생일, ".")
+        몇월 = strtok(임시생일, ".")
+        임시생일 = LeftDeleteInStr(임시생일, ".")
+        몇일 = 임시생일
+        If Len(몇월) < 2 Then
+            몇월 = "0" & 몇월
+        End If
+        If Len(몇일) < 2 Then
+            몇일 = "0" & 몇일
+        End If
+        생일 = 몇년 & 몇월 & 몇일
+    Else                                    '90.01.01 형식일 경우
+        생일 = PowerTrim(임시생일)
+    End If
+End If
+
+'----------------------------------------주소----------------------------------------'
+errmsg = "주소"
+str = LeftDeleteInStr(str, "(주민등록상)")      '주소까지 문자열 삭제"
+주소 = strtok(str, "연락처(휴대폰)")            '전화번호 앞 까지가 주소
+
+'---------------------------------------연락처---------------------------------------'
+errmsg = "연락처"
+str = LeftDeleteInStr(str, "연락처(휴대폰)")    '연락처까지 문자열 삭제"
+임시번호 = strtok(str, "최종학력")              '전화번호 앞 까지가 번호
+
+
+'하이픈이 없는 형식일 경우 하이픈 삽입
+If InStr(1, 임시번호, "-") = 0 Then
+    번호 = Left(임시번호, 3) & "-" & Mid(임시번호, 4, 4) & "-" & Right(임시번호, 4)
+Else
+    번호 = 임시번호
+End If
+
+'----------------------------------------학력----------------------------------------'
+errmsg = "학력"
+str = LeftDeleteInStr(str, "최종학력")      '최종학력 문자열 삭제"
+Dim 임시학력 As String
+임시학력 = strtok(str, "전공")              '전공 앞 까지가 학력
+Dim 년도 As String, 학교 As String, 휴학 As String
+임시학력 = Replace(임시학력, "졸업연도기재", "", vbTextCompare)
+Dim 임시학교 As String
+임시학교 = strtok(PowerTrim(임시학력), "학교졸업")
+
+년도 = strtok(임시학교, "년")
+If Len(년도) < 4 Then
+    년도 = "20" & 년도
+End If
+임시학교 = LeftDeleteInStr(임시학교, "(")
+학교 = strtok(임시학교, ")")
+
+'휴학 중 이라면
+휴학정보 = LRCrTrim(LeftDeleteInStr(PowerTrim(임시학력), "학교졸업"))
+If InStr(휴학정보, "년()학교휴학중") = 0 And 휴학정보 <> "" Then
+    년도인덱스 = InStr(1, 휴학정보, "년")
+    학교인덱스 = InStr(1, 휴학정보, ")학교")
+    년도 = "휴학중"
+    학교 = Mid(휴학정보, 년도인덱스 + 2, 학교인덱스 - (년도인덱스 + 2))
+End If
+
+str = LeftDeleteInStr(str, "전공")          '전공까지 문자열 삭제"
+전공 = strtok(str, "특이사항")              '특이사항 앞 까지가 전공
+
+'----------------------------------------희망권역----------------------------------------'
+errmsg = "희망권역"
+임시권역 = PowerTrim(strtok(str, "*동탄권"))    '권역설명 앞 까지가 희망권역
+
+If InStr(1, 임시권역, "동부권□") = 0 Then
+    권역 = "동부"
+Else
+    권역 = "서부"
+End If
+
+'----------------------------------------희망부서----------------------------------------'
+errmsg = "희망부서"
+str = LeftDeleteInStr(str, "3순위")       '희망권역 문자열 삭제"
+Dim 희망백업 As String
+희망백업 = LeftDeleteInStr(strbackup, "3순위")  '지망정보는 행으로 구분 하기 때문에 개행을 제거하지 않은 str백업으로부터 정보를 추출해야함
+희망백업 = LeftDeleteInStr(희망백업, vbCr)
+희망백업 = strtok(희망백업, "보유")
+Dim 지망(3)
+
+For i = 1 To 2
+    For j = 1 To Len(희망백업)
+        Dim crindex
+        crindex = 1
+        If Mid(희망백업, j, 1) = vbCr Then
+            지망(i) = LRCrTrim(Mid(희망백업, crindex, j))
+            crindex = j + 1
+            희망백업 = LeftDelete(희망백업, j + 1)
+            Exit For
+        End If
+    Next j
+Next i
+지망(3) = LRCrTrim(희망백업)
+
+'-----------------------------------자격증 및 특이사항------------------------------------'
+errmsg = "자격증, 특이사항"
+자격증str = LeftDeleteInStr(strbackup, "보유 자격증")
+자격증 = Trim(strtok(자격증str, "기타 경력 등 특이사항"))
+
+특이사항str = LeftDeleteInStr(strbackup, "기타 경력 등 특이사항")
+특이사항 = Trim(strtok(특이사항str, "★ 최종부서 배치결과는 본인의 희망부서와 다를 수 있음 ★"))
+
+자격증 = Replace(자격증, Chr(10) & "*예시: 워드, 컴퓨터활용(엑셀), 포토샵, CAD, 기타(전공분야) 등", "", vbTextCompare)
+자격증 = Replace(자격증, "*예시: 워드, 컴퓨터활용(엑셀), 포토샵, CAD, 기타(전공분야) 등", "", vbTextCompare)
+
+자격증 = LRCrTrim(자격증)
+특이사항 = LRCrTrim(특이사항)
+
+'----------------------------------------기입----------------------------------------'
+errmsg = "기입"
+Worksheets("2020-신청명단").Cells(입력행, 6).Value = 성명
+Worksheets("2020-신청명단").Cells(입력행, 7).Value = 생일
+Worksheets("2020-신청명단").Cells(입력행, 8).Value = 주소
+Worksheets("2020-신청명단").Cells(입력행, 9).Value = 번호
+Worksheets("2020-신청명단").Cells(입력행, 10).Value = 년도
+Worksheets("2020-신청명단").Cells(입력행, 11).Value = 학교
+Worksheets("2020-신청명단").Cells(입력행, 12).Value = 전공
+Worksheets("2020-신청명단").Cells(입력행, 13).Value = 권역
+For i = 1 To 3
+    Worksheets("2020-신청명단").Cells(입력행, 13 + i).Value = 지망(i)
+Next i
+Worksheets("2020-신청명단").Cells(입력행, 17).Value = 자격증
+Worksheets("2020-신청명단").Cells(입력행, 18).Value = 특이사항
+
+Worksheets("2020-신청명단").Cells(입력행, 20).Value = Date
+
+Exit Sub
+
+nErr:
+    MsgBox "에러가 발생합니다. 제대로된 양식이 아닙니다" & vbCr & "복사된 내용 : " & str, , errmsg
+
+End Sub
