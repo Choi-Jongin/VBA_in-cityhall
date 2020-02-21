@@ -1,0 +1,187 @@
+'새 게임
+Sub NewGame()
+
+    Dim starttime
+    Dim curttime
+    
+    Dim GameState As String
+    
+    
+    GameState = "play"
+    
+    Range("AT36:BW60").ClearContents
+
+    If GameState = "play" Then
+        
+        NewBlock
+    
+        NumOfSeconds = 0.2
+        aa = Timer
+        [a1] = Timer
+        bb = Int(5 / NumOfSeconds)
+        starttime = Timer
+        For i = 0 To bb
+        
+            Do While True
+                curttime = Timer
+                If curttime > NumOfSeconds + starttime Then
+                    Exit Do
+                End If
+                DoEvents
+            Loop
+            starttime = curttime
+                            
+            [a2] = Timer
+            [A3] = [a2] - [a1]
+            Drop
+        Next i
+        MsgBox Timer - aa
+    End If
+
+End Sub
+
+Sub SleepFor(NumOfSeconds As Single)
+
+    Dim SngSec As Single
+
+    SngSec = Timer + NumOfSeconds
+
+    Do While Timer < SngSec
+        DoEvents
+    Loop
+
+    SngSec = -Timer
+End Sub
+
+Sub NewBlock()
+    
+    '새로운 블록을 만듬
+    randr = Int(Rnd() * 7)
+    randc = Int(Rnd() * 4)
+    
+    For i = 1 To 4
+        For j = 1 To 4
+            Cells(40 + i, 45 + j).Value = Cells(40 + i + randr * 5, 10 + j + randc * 5).Value
+        Next j
+    Next i
+    
+    '블록정보 기록
+    Cells(45, 46).Value = -3
+    Cells(45, 47).Value = 3
+    Cells(45, 48).Value = randr
+    Cells(45, 49).Value = randc
+    
+
+
+End Sub
+
+'블록이 바닥에 담
+Sub EndBlock()
+
+    '블록좌표
+    blockr = Cells(45, 46).Value
+    blockc = Cells(45, 47).Value
+    
+    If blockr >= 0 And Cells(45, 46).Value <> "" Then
+    
+    '블록을 등록?시킴
+    For i = 1 To 4
+        For j = 1 To 4
+            If Cells(40 + blockr + i, 65 + blockc + j).Value = "" Then
+                Cells(40 + blockr + i, 65 + blockc + j).Value = Cells(40 + Cells(45, 48).Value * 5 + i, 10 + Cells(45, 49).Value * 5 + j).Value
+            End If
+            Cells(40 + i + blockr, 52 + j + blockc).Value = ""
+        Next j
+    Next i
+    
+    End If
+
+
+End Sub
+'블록을 아래로 한행 내림
+Sub Drop()
+
+    blockr = Cells(45, 46).Value
+    blockc = Cells(45, 47).Value
+    
+    
+    For i = 1 To 4
+        For j = 1 To 4
+            Cells(40 + i + blockr, 52 + j + blockc).Value = ""
+        Next j
+    Next i
+        
+    If Overlap(blockr + 1, blockc, Cells(45, 48).Value, Cells(45, 49).Value) Then
+        
+        EndBlock
+        NewBlock
+            
+    Else
+    
+        Cells(45, 46).Value = Cells(45, 46).Value + 1
+        blockr = blockr + 1
+        For i = 1 To 4
+            For j = 1 To 4
+                Cells(40 + i + blockr, 52 + j + blockc).Value = Cells(40 + Cells(45, 48).Value * 5 + i, 10 + Cells(45, 49).Value * 5 + j).Value
+            Next j
+        Next i
+
+    End If
+    
+End Sub
+'블록충돌
+Function Overlap(blockr, blockc, kind, dir)
+    
+    lenth = 4
+   
+    For i = 1 To 4
+        isLast = False
+        For j = 1 To 4
+            isLast = (isLast) Or (Cells(40 + kind * 5 + i, 10 + dir * 5 + j).Value)
+        Next j
+        If isLast Then
+            lenth = i
+            Exit For
+        End If
+    Next i
+    
+    If blockr - 4 + i > 20 Then
+        Overlap = True
+        Exit Function
+    End If
+    
+    For i = 1 To 4
+        For j = 1 To 4
+            If Cells(40 + blockr + i, 65 + blockc + j).Value <> "" And Cells(40 + kind * 5 + i, 10 + dir * 5 + j).Value <> "" Then
+                Overlap = True
+                Exit Function
+            End If
+        Next j
+    Next i
+    Overlap = False
+    
+End Function
+
+Function Move(dir)  ' 0:좌, 1:우, 2:하단, 3:최하단
+
+    Select Case dir
+    Case 0
+        Cells(45, 47).Value = Cells(45, 47).Value - 1
+    Case 1
+        Cells(45, 47).Value = Cells(45, 47).Value = 1
+    Case 2
+        Cells(45, 47).Value = Cells(45, 47).Value + 1
+    Case 3
+    
+    Do Until Overlap(blockr, blockc, Cells(45, 48).Value, Cells(45, 49).Value)
+               Cells(45, 47).Value = Cells(45, 47).Value + 1
+    Loop
+    
+    
+    
+    End Select
+    
+
+End Function
+
+
