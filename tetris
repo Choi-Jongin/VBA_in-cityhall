@@ -1,13 +1,18 @@
+
+Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr)
+
 '새 게임
 Sub NewGame()
 
-    Dim starttime
-    Dim curttime
-    
+    Dim starttime As Double
+    Dim curttime As Double
+    Dim NumOfSeconds As Double
+    Dim elapstime As Double
     Dim GameState As String
     
     
     GameState = "play"
+    Cells(25, 1).Value = GameState
     
     Range("AT36:BW60").ClearContents
 
@@ -15,27 +20,29 @@ Sub NewGame()
         
         NewBlock
     
-        NumOfSeconds = 0.2
-        aa = Timer
-        [a1] = Timer
-        bb = Int(5 / NumOfSeconds)
+        elapstime = 0
+        interval = 0.1
+        
+        lasttime = Int(50 / interval)
         starttime = Timer
-        For i = 0 To bb
+        For i = 0 To lasttime
+        
+            If StrComp(Cells(25, 1).Value, "play", vbTextCompare) <> 0 Then
+                Exit For
+            End If
         
             Do While True
                 curttime = Timer
-                If curttime > NumOfSeconds + starttime Then
+                If curttime > interval + starttime Then
+                    elapstime = elapstime + Int((curttime - starttime) * 1000)
                     Exit Do
                 End If
                 DoEvents
             Loop
-            starttime = curttime
-                            
-            [a2] = Timer
-            [A3] = [a2] - [a1]
+            starttime = starttime + interval
+            controller.elapslabel.Caption = "시간 : " & (elapstime / 1000)
             Drop
         Next i
-        MsgBox Timer - aa
     End If
 
 End Sub
@@ -52,10 +59,9 @@ Sub SleepFor(NumOfSeconds As Single)
 
     SngSec = -Timer
 End Sub
-
+'새로운 블록을 만듬
 Sub NewBlock()
-    
-    '새로운 블록을 만듬
+        
     randr = Int(Rnd() * 7)
     randc = Int(Rnd() * 4)
     
@@ -94,6 +100,10 @@ Sub EndBlock()
         Next j
     Next i
     
+    Else
+    
+        Cells(25, 1).Value = "over"
+    
     End If
 
 
@@ -104,18 +114,23 @@ Sub Drop()
     blockr = Cells(45, 46).Value
     blockc = Cells(45, 47).Value
     
+    Range("ba37:bj60").ClearContents
     
-    For i = 1 To 4
-        For j = 1 To 4
-            Cells(40 + i + blockr, 52 + j + blockc).Value = ""
-        Next j
-    Next i
+    
+'    For i = 1 To 4
+ '       For j = 1 To 4
+  '          Cells(40 + i + blockr, 52 + j + blockc).Value = ""
+   '     Next j
+    'Next i
         
     If Overlap(blockr + 1, blockc, Cells(45, 48).Value, Cells(45, 49).Value) Then
         
         EndBlock
-        NewBlock
-            
+        If Cells(25, 1).Value = "over" Then
+        
+        Else
+            NewBlock
+        End If
     Else
     
         Cells(45, 46).Value = Cells(45, 46).Value + 1
@@ -133,19 +148,14 @@ End Sub
 Function Overlap(blockr, blockc, kind, dir)
     
     lenth = 4
-   
     For i = 1 To 4
-        isLast = False
-        For j = 1 To 4
-            isLast = (isLast) Or (Cells(40 + kind * 5 + i, 10 + dir * 5 + j).Value)
-        Next j
-        If isLast Then
-            lenth = i
+        If (Cells(40 + kind * 5 + i, 10 + dir * 5 + 1).Value = "") And (Cells(40 + kind * 5 + i, 10 + dir * 5 + 2).Value = "") And (Cells(40 + kind * 5 + i, 10 + dir * 5 + 3).Value = "") And (Cells(40 + kind * 5 + i, 10 + dir * 5 + 4).Value = "") Then
+            lenth = i - 1
             Exit For
         End If
     Next i
     
-    If blockr - 4 + i > 20 Then
+    If blockr > 16 + (4 - lenth) Then
         Overlap = True
         Exit Function
     End If
@@ -158,30 +168,90 @@ Function Overlap(blockr, blockc, kind, dir)
             End If
         Next j
     Next i
+    
+    Dim margin(5) As Integer
+    For i = 1 To 4
+        margin(i) = 0
+        If (Cells(40 + kind * 5 + 1, 10 + dir * 5 + i).Value = "") And (Cells(40 + kind * 5 + 2, 10 + dir * 5 + i).Value = "") And (Cells(40 + kind * 5 + 3, 10 + dir * 5 + i).Value = "") And (Cells(40 + kind * 5 + 4, 10 + dir * 5 + i).Value = "") Then
+            margin(i) = 1
+        End If
+    Next i
+    
+    If blockc + margin(1) + margin(2) < 0 Then
+        Overlap = True
+        Exit Function
+    End If
+    
+    If blockc > 6 + margin(3) + margin(4) Then
+        Overlap = True
+        Exit Function
+    End If
+    
+    
+    
     Overlap = False
     
 End Function
-
-Function Move(dir)  ' 0:좌, 1:우, 2:하단, 3:최하단
-
+'회전
+Function MoveBlock(dir)  ' 0:좌, 1:우, 2:하단, 3:최하단
+    
+    blockr = Cells(45, 46).Value
+    blockc = Cells(45, 47).Value
+    
     Select Case dir
     Case 0
-        Cells(45, 47).Value = Cells(45, 47).Value - 1
+        If Overlap(blockr, blockc - 1, Cells(45, 48).Value, Cells(45, 49).Value) = False Then
+            Cells(45, 47).Value = Cells(45, 47).Value - 1
+        End If
     Case 1
-        Cells(45, 47).Value = Cells(45, 47).Value = 1
+        If Overlap(blockr, blockc + 1, Cells(45, 48).Value, Cells(45, 49).Value) = False Then
+            Cells(45, 47).Value = Cells(45, 47).Value + 1
+        End If
     Case 2
-        Cells(45, 47).Value = Cells(45, 47).Value + 1
+    If Overlap(blockr + 1, blockc, Cells(45, 48).Value, Cells(45, 49).Value) = False Then
+            Cells(45, 46).Value = Cells(45, 46).Value + 1
+        End If
     Case 3
     
-    Do Until Overlap(blockr, blockc, Cells(45, 48).Value, Cells(45, 49).Value)
-               Cells(45, 47).Value = Cells(45, 47).Value + 1
+        Do Until Overlap(blockr + 1, blockc, Cells(45, 48).Value, Cells(45, 49).Value)
+            Cells(45, 46).Value = blockr + 1
+        blockr = Cells(45, 46).Value
     Loop
-    
-    
+       
     
     End Select
     
 
 End Function
+Function RotateBlock(dir)  ' 0:반시계 방향, 1:시계방향
 
+    blockr = Cells(45, 46).Value
+    blockc = Cells(45, 47).Value
+    
+    rotate = Cells(45, 49).Value
+    
+    Select Case dir
+    Case 0
+        rotate = rotate - 1
+        If rotate < 0 Then
+            rotate = 3
+        End If
+    Case 1
+        rotate = rotate + 1
+        If rotate > 3 Then
+            rotate = 0
+        End If
+    End Select
+        
+    If Overlap(blockr, blockc, Cells(45, 48).Value, rotate) = False Then
+        Cells(45, 49).Value = rotate
+    End If
+
+End Function
+
+Sub showcontroller()
+
+    controller.Show
+
+End Sub
 
