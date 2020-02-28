@@ -1,6 +1,6 @@
 
 Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr)
-
+Public dropspeed As Double
 '새 게임
 Sub NewGame()
 
@@ -12,37 +12,59 @@ Sub NewGame()
     
     
     GameState = "play"
+    Cells(27, 1).Value = 0
     Cells(25, 1).Value = GameState
+    dropspeed = 0.3
     
     Range("AT36:BW60").ClearContents
 
     If GameState = "play" Then
-        
         NewBlock
     
         elapstime = 0
-        interval = 0.1
+        interval = 0.033
         
-        lasttime = Int(50 / interval)
         starttime = Timer
-        For i = 0 To lasttime
+        
+        'mainloop
+        Do While elapstime < 100000
         
             If StrComp(Cells(25, 1).Value, "play", vbTextCompare) <> 0 Then
-                Exit For
+                Exit Do
             End If
-        
-            Do While True
+            
+            Do Until curttime >= interval + starttime
                 curttime = Timer
-                If curttime > interval + starttime Then
-                    elapstime = elapstime + Int((curttime - starttime) * 1000)
-                    Exit Do
-                End If
                 DoEvents
             Loop
-            starttime = starttime + interval
+            
+            elapstime = elapstime + (curttime - starttime) * 1000
+                        
+            'Do something
             controller.elapslabel.Caption = "시간 : " & (elapstime / 1000)
-            Drop
-        Next i
+            
+            Cells(46, 46).Value = Cells(46, 46).Value + (curttime - starttime)
+            
+            If Cells(46, 46).Value > dropspeed Then
+            
+                Drop
+                Cells(27, 1).Value = Cells(27, 1).Value + 100
+                Cells(46, 46).Value = Cells(46, 46).Value - dropspeed
+            End If
+            
+            
+            'refresh
+            Range("ba37:bj60").ClearContents
+            blockr = Cells(45, 46).Value
+            blockc = Cells(45, 47).Value
+            For r = 1 To 4
+                For c = 1 To 4
+                    Cells(40 + r + blockr, 52 + c + blockc).Value = Cells(40 + Cells(45, 48).Value * 5 + r, 10 + Cells(45, 49).Value * 5 + c).Value
+                Next c
+            Next r
+        
+            starttime = starttime + interval
+        Loop
     End If
 
 End Sub
@@ -105,7 +127,8 @@ Sub EndBlock()
         Cells(25, 1).Value = "over"
     
     End If
-
+    
+    ClearLine
 
 End Sub
 '블록을 아래로 한행 내림
@@ -114,7 +137,7 @@ Sub Drop()
     blockr = Cells(45, 46).Value
     blockc = Cells(45, 47).Value
     
-    Range("ba37:bj60").ClearContents
+'   Range("ba37:bj60").ClearContents
     
     
 '    For i = 1 To 4
@@ -134,12 +157,12 @@ Sub Drop()
     Else
     
         Cells(45, 46).Value = Cells(45, 46).Value + 1
-        blockr = blockr + 1
-        For i = 1 To 4
-            For j = 1 To 4
-                Cells(40 + i + blockr, 52 + j + blockc).Value = Cells(40 + Cells(45, 48).Value * 5 + i, 10 + Cells(45, 49).Value * 5 + j).Value
-            Next j
-        Next i
+'        blockr = blockr + 1
+'        For i = 1 To 4
+'            For j = 1 To 4
+'                Cells(40 + i + blockr, 52 + j + blockc).Value = Cells(40 + Cells(45, 48).Value * 5 + i, 10 + Cells(45, 49).Value * 5 + j).Value
+'            Next j
+'        Next i
 
     End If
     
@@ -246,6 +269,43 @@ Function RotateBlock(dir)  ' 0:반시계 방향, 1:시계방향
     If Overlap(blockr, blockc, Cells(45, 48).Value, rotate) = False Then
         Cells(45, 49).Value = rotate
     End If
+    If Overlap(blockr + 1, blockc, Cells(45, 48).Value, rotate) = True Then
+        Cells(46, 46).Value = 0
+    End If
+
+End Function
+
+Function ClearLine()
+    
+    Dim line As Integer
+    line = 0
+    
+    For i = 20 To 1 Step -1
+        Dim full As Boolean
+        full = True
+        For Each cell In Range(Cells(40 + i, 66), Cells(40 + i, 75))
+            If cell.Value = "" Then
+                full = False
+                Exit For
+            End If
+        Next cell
+        If full Then
+            line = line + 1
+            Range(Cells(40 + i, 66), Cells(40 + i, 75)).ClearContents
+            SleepFor (0.1)
+            Cells(46, 46).Value = Cells(46, 46).Value - 0.1
+            For j = i To 1 Step -1
+            
+'            Range(Cells(40 + j, 66), Cells(40 + j, 75)).vlaue = Range(Cells(40 + j - 1, 66), Cells(40 + j - 1, 75)).Value'
+                For k = 1 To 10
+                    Cells(40 + j, 65 + k).Value = Cells(40 + j - 1, 65 + k).Value
+                Next k
+            Next j
+            i = i + 1
+        End If
+    Next i
+    
+    ClearLine = line
 
 End Function
 
